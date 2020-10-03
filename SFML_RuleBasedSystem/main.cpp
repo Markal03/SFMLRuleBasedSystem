@@ -92,18 +92,25 @@ void grow()
 			if (y < GRID_SIZE_Y - 1 && grid[y + 1][x])
 				number_of_neighbours++;
 
-			// If we have more than one neighbour
-			if (number_of_neighbours > 1)
-			{
-				// If there is a node at the position, kill it
-				// If there is not a node at the position, spawn one
-				grid[y][x] = grid[y][x] ? false : true;
+			//If the node is populated
+			if (grid[y][x]) {
+				//check if the node has 0, 1 or more than 3 neighbours
+				//if yes, kill it, otherwise leave it
+				grid[y][x] = number_of_neighbours < 2 || number_of_neighbours > 3 ? false : true;
 			}
+			//if there are exactly three neighbours and the node is not populated
+			else if(number_of_neighbours == 3) {
+				//spawn
+				grid[y][x] = true;
+			}
+
+		
+
 		}
 	}
 }
 
-void run_rules()
+void run_rules(int cycles)
 {
 	// Run the rules
 	random_movement();
@@ -147,7 +154,7 @@ int main()
 	// Clock for timing
 	sf::Clock clock;
 	float elapsed = 0.0f;
-
+	int cycles = 0;
 	// While the window is open, update
 	while (window.isOpen())
 	{
@@ -183,10 +190,11 @@ int main()
 		elapsed += clock.restart().asSeconds();
 		if (elapsed > (1.f / (float)FRAMES_PER_SECOND))
 		{
+			cycles++;
 			elapsed = 0.0f;
 			if (event_playing)
 			{
-				run_rules();
+				run_rules(cycles);
 			}
 		}
 
