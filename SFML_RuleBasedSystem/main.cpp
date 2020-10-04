@@ -1,6 +1,6 @@
 // SFML includes
 #include <SFML/Graphics.hpp>
-
+#include <vector>
 // The defines that state the size of the grid and the speed of the game.
 #define GRID_SIZE_X 50
 #define GRID_SIZE_Y 50
@@ -76,6 +76,9 @@ void random_movement()
  */
 void grow()
 {
+	//buffer grid to store the updated grid
+	bool updated_grid [GRID_SIZE_Y][GRID_SIZE_X] = { false };
+
 	// Go through every item in our grid
 	for (int y = 0; y < GRID_SIZE_Y; y++)
 	{
@@ -83,29 +86,122 @@ void grow()
 		{
 			// Calculate the number of neighboring nodes
 			int number_of_neighbours = 0;
-			if (y > 0 && grid[y - 1][x])
+			if (y > 0 && grid[y - 1][x]) //bottom
 				number_of_neighbours++;
-			if (x > 0 && grid[y][x - 1])
+			if (x > 0 && grid[y][x - 1]) //left
 				number_of_neighbours++;
-			if (x < GRID_SIZE_X - 1 && grid[y][x + 1])
+			if (x < GRID_SIZE_X - 1 && grid[y][x + 1]) //right
 				number_of_neighbours++;
-			if (y < GRID_SIZE_Y - 1 && grid[y + 1][x])
+			if (y < GRID_SIZE_Y - 1 && grid[y + 1][x]) //top
+				number_of_neighbours++;
+			if (y > 0 && x > 0 && grid[y - 1][x - 1]) //bottom left
+				number_of_neighbours++;
+			if (y < GRID_SIZE_Y - 1 && x > 0 && grid[y + 1][x - 1]) //top left
+				number_of_neighbours++;
+			if (y > 0 && x < GRID_SIZE_X && grid[y - 1][x + 1]) //bottom right
+				number_of_neighbours++;
+			if (y < GRID_SIZE_Y - 1 && x < GRID_SIZE_X && grid[y + 1][x + 1]) //top right
 				number_of_neighbours++;
 
 			//If the node is populated
 			if (grid[y][x]) {
 				//check if the node has 0, 1 or more than 3 neighbours
 				//if yes, kill it, otherwise leave it
-				grid[y][x] = number_of_neighbours < 2 || number_of_neighbours > 3 ? false : true;
+				updated_grid[y][x] = number_of_neighbours < 2 || number_of_neighbours > 3 ? false : true;
 			}
 			//if there are exactly three neighbours and the node is not populated
-			else if(number_of_neighbours == 3) {
+			else if (number_of_neighbours == 3) {
 				//spawn
-				grid[y][x] = true;
+				updated_grid[y][x] = true;
 			}
 
-		
+		}
+	}
 
+	//update main grid with updated grid
+	for (int y = 0; y < GRID_SIZE_Y; y++)
+	{
+		for (int x = 0; x < GRID_SIZE_X; x++)
+		{
+			grid[y][x] = updated_grid[y][x];
+		}
+	}
+
+}
+
+void random_spawn() {
+
+		int randomY = rand() % 50;
+		int randomX = rand() % 50;
+
+		//if the node is not populated
+		if (!grid[randomY][randomX]) {
+			//populate it
+			grid[randomY][randomX] = true;
+		}
+		else {
+			//otherwise recursively call this function
+			random_spawn();
+		}
+}
+
+void random_death() {
+
+		std::vector<int> populated_nodes_x;
+		std::vector<int> populated_nodes_y;
+		populated_nodes_y.clear();
+		populated_nodes_x.clear();
+
+		for (int y = 0; y < GRID_SIZE_Y; y++)
+		{
+			for (int x = 0; x < GRID_SIZE_X; x++)
+			{
+				if (grid[y][x]) {
+					populated_nodes_x.push_back(x);
+					populated_nodes_y.push_back(y);
+				}
+			}
+		}
+
+		if (populated_nodes_x.size() > 0) {
+			int random_index = rand() % populated_nodes_x.size();
+
+			grid[populated_nodes_y.at(random_index)][populated_nodes_x.at(random_index)] = false;
+		}
+
+}
+
+void kill_half() {
+
+	int index = 0;
+	int populated_nodes = 0;
+	for (int y = 0; y < GRID_SIZE_Y; y++)
+	{
+		for (int x = 0; x < GRID_SIZE_X; x++)
+		{
+			if (grid[y][x]) {
+				populated_nodes++;
+			}
+
+			index++;
+		}
+	}
+
+	//if more than 75% of nodes are populated
+	if (populated_nodes > 1875) {
+
+		int half_nodes = populated_nodes / 2;
+
+		for (int y = 0; y < GRID_SIZE_Y; y++)
+		{
+			for (int x = 0; x < GRID_SIZE_X; x++)
+			{
+				if (grid[y][x] && populated_nodes > half_nodes ) { //delete half nodes
+					grid[y][x] = false;
+					populated_nodes--;
+				}
+
+			}
 		}
 	}
 }
@@ -113,8 +209,10 @@ void grow()
 void run_rules(int cycles)
 {
 	// Run the rules
-	random_movement();
 	grow();
+	if (cycles % 5 == 0) random_spawn();
+	if (cycles % 6 == 0) random_death();
+	kill_half();
 }
 
 int main()
